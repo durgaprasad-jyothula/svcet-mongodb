@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUD App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        #item-form {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        input[type="text"],
+        input[type="number"] {
+            padding: 10px;
+            width: 150px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            background: white;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+        .actions button {
+            background-color: #ffc107;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+        .actions button.delete {
+            background-color: #dc3545;
+        }
+        .actions button:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div>
+        <h1>CRUD App</h1>
+        <div id="item-form">
+            <input type="text" id="name" placeholder="Name" required>
+            <input type="number" id="quantity" placeholder="Quantity" required>
+            <input type="number" id="price" placeholder="Price" required>
+            <button onclick="createItem()">Add Item</button>
+        </div>
+        <ul id="items-list"></ul>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/items';
+        let itemsList = document.getElementById('items-list');
+
+        // Fetch and display items
+        async function fetchItems() {
+            const response = await fetch(API_URL);
+            const items = await response.json();
+            itemsList.innerHTML = '';
+            items.forEach(item => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    ${item.name} - Quantity: ${item.quantity} - Price: $${item.price}
+                    <div class="actions">
+                        <button onclick="editItem('${item._id}')">Edit</button>
+                        <button class="delete" onclick="deleteItem('${item._id}')">Delete</button>
+                    </div>
+                `;
+                itemsList.appendChild(li);
+            });
+        }
+
+        // Create a new item
+        async function createItem() {
+            const name = document.getElementById('name').value;
+            const quantity = document.getElementById('quantity').value;
+            const price = document.getElementById('price').value;
+
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name, quantity, price }),
+            });
+
+            if (response.ok) {
+                fetchItems();
+                clearForm();
+            }
+        }
+
+        // Edit an item
+        async function editItem(id) {
+            const item = await fetch(`${API_URL}/${id}`).then(res => res.json());
+
+            document.getElementById('name').value = item.name;
+            document.getElementById('quantity').value = item.quantity;
+            document.getElementById('price').value = item.price;
+
+            document.querySelector('button[onclick="createItem()"]').textContent = 'Update Item';
+            document.querySelector('button[onclick="createItem()"]').onclick = () => updateItem(id);
+        }
+
+        // Update an item
+        async function updateItem(id) {
+            const name = document.getElementById('name').value;
+            const quantity = document.getElementById('quantity').value;
+            const price = document.getElementById('price').value;
+
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name, quantity, price }),
+            });
+
+            if (response.ok) {
+                fetchItems();
+                clearForm();
+                resetForm();
+            }
+        }
+
+        // Delete an item
+        async function deleteItem(id) {
+            const response = await fetch(`${API_URL}/${id}`, {
+                method: 'DELETE',
+            });
+
+            if (response.ok) {
+                fetchItems();
+            }
+        }
+
+        // Clear the form
+        function clearForm() {
+            document.getElementById('name').value = '';
+            document.getElementById('quantity').value = '';
+            document.getElementById('price').value = '';
+        }
+
+        // Reset the form to add new item
+        function resetForm() {
+            document.querySelector('button[onclick^="updateItem"]').textContent = 'Add Item';
+            document.querySelector('button[onclick^="updateItem"]').onclick = createItem;
+        }
+
+        // Initialize the list
+        fetchItems();
+    </script>
+</body>
+</html>
